@@ -1,6 +1,6 @@
 <?php
 // Command line options
-$options = getopt("f:u:p:h:", ["file:", "create_table", "dry_run", "help"]);
+$options = getopt("f:u:p:h:d:", ["file:", "create_table", "dry_run", "help"]);
 
 // Help message function
 function printHelp() {
@@ -12,7 +12,7 @@ function printHelp() {
     echo "  -u                         MySQL username\n";
     echo "  -p                         MySQL password\n";
     echo "  -h                         MySQL host\n";
-    echo "  -h                         MySQL host\n";
+    echo "  -d                         MySQL db name\n";
     echo "  --help                     Show this help message\n";
 }
 
@@ -25,8 +25,8 @@ if (isset($options['help'])) {
 // Database configuration
 $db_host = isset($options['h']) ? $options['h'] : 'localhost';
 $db_username = isset($options['u']) ? $options['u'] : 'root';
-$db_password = isset($options['p']) ? $options['p'] : '';
-$db_name = 'database_name';
+$db_password = isset($options['p']) ? $options['p'] : 'root';
+$db_name = isset($options['d']) ? $options['d'] : 'database_name';
 
 // Connect to MySQL database
 $conn = new mysqli($db_host, $db_username, $db_password, $db_name);
