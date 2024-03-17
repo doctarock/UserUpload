@@ -105,5 +105,5 @@ phpunit FooBarText.php
 If PHPUnit is not available in your system path, you may need to execute the following:
 
 ```sh
-php vendor/bin/phpunit FooBarText.php
+php vendor/bin/phpunit FooBarTest.php
 ```
