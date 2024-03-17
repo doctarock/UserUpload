@@ -36,7 +36,12 @@ if ($conn->connect_error) {
 
 // Create users table if --create_table option is provided
 if (isset($options['create_table'])) {
-    $sql = "CREATE TABLE IF NOT EXISTS users (
+    if ($conn->query("DROP TABLE IF EXISTS users") === TRUE) {
+        echo "Table 'users' cleared successfully\n";
+    } else {
+        die("Error clearing table: " . $conn->error);
+    }
+    $sql = "CREATE TABLE users (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(50) NOT NULL,
         surname VARCHAR(50) NOT NULL,
@@ -45,7 +50,7 @@ if (isset($options['create_table'])) {
     if ($conn->query($sql) === TRUE) {
         echo "Table 'users' created successfully\n";
     } else {
-        echo "Error creating table: " . $conn->error . "\n";
+        die("Error creating table: " . $conn->error);
     }
     exit;
 }
@@ -62,11 +67,27 @@ function validateAndInsert($name, $surname, $email, $conn, $dry_run) {
     }
 
     if (!$dry_run) {
-        $sql = "INSERT INTO users (name, surname, email) VALUES ('$name', '$surname', '$email')";
-        if ($conn->query($sql) === TRUE) {
-            echo "Record inserted successfully: $name $surname $email\n";
-        } else {
+        // Prepare a SQL statement with placeholders
+        $sql = "INSERT INTO users (name, surname, email) VALUES (?, ?, ?)";
+        
+        // Prepare the statement
+        $stmt = $conn->prepare($sql);
+        
+        // Bind parameters to the statement
+        $stmt->bind_param("sss", $name, $surname, $email);
+
+        try {
+        
+            // Execute the statement
+            if ($stmt->execute()) {
+                echo "Record inserted successfully: $name $surname $email\n";
+            }
+
+        } catch (Exception $ex) {
+
+            // Fail gracefully
             echo "Error inserting record: " . $conn->error . "\n";
+
         }
     } else {
         echo "Dry run: Record not inserted: $name $surname $email\n";
