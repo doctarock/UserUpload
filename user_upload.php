@@ -1,11 +1,31 @@
 <?php
 // Command line options
-$options = getopt("f:r", ["file:", "rebuild"]);
+$options = getopt("f:u:p:h:", ["file:", "create_table", "dry_run", "help"]);
+
+// Help message function
+function printHelp() {
+    echo "Usage: php user_upload.php [options]\n";
+    echo "Options:\n";
+    echo "  --file [csv file name]     Specify the CSV file to be parsed\n";
+    echo "  --create_table             Build the MySQL users table and exit\n";
+    echo "  --dry_run                  Parse the CSV file but do not insert into the database\n";
+    echo "  -u                         MySQL username\n";
+    echo "  -p                         MySQL password\n";
+    echo "  -h                         MySQL host\n";
+    echo "  -h                         MySQL host\n";
+    echo "  --help                     Show this help message\n";
+}
+
+// Print help message if --help option is provided
+if (isset($options['help'])) {
+    printHelp();
+    exit;
+}
 
 // Database configuration
-$db_host = 'localhost';
-$db_username = 'username';
-$db_password = 'password';
+$db_host = isset($options['h']) ? $options['h'] : 'localhost';
+$db_username = isset($options['u']) ? $options['u'] : 'root';
+$db_password = isset($options['p']) ? $options['p'] : '';
 $db_name = 'database_name';
 
 // Connect to MySQL database
@@ -14,31 +34,24 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Check if table needs to be rebuilt
-if (isset($options['rebuild']) || isset($options['r'])) {
-    $sql = "DROP TABLE IF EXISTS users";
+// Create users table if --create_table option is provided
+if (isset($options['create_table'])) {
+    $sql = "CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(50) NOT NULL,
+        surname VARCHAR(50) NOT NULL,
+        email VARCHAR(100) NOT NULL
+    )";
     if ($conn->query($sql) === TRUE) {
-        echo "Table 'users' dropped successfully\n";
+        echo "Table 'users' created successfully\n";
     } else {
-        echo "Error dropping table: " . $conn->error . "\n";
+        echo "Error creating table: " . $conn->error . "\n";
     }
-}
-
-// Create users table if it doesn't exist
-$sql = "CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
-    surname VARCHAR(50) NOT NULL,
-    email VARCHAR(100) NOT NULL
-)";
-if ($conn->query($sql) === TRUE) {
-    echo "Table 'users' created/rebuilt successfully\n";
-} else {
-    echo "Error creating table: " . $conn->error . "\n";
+    exit;
 }
 
 // Function to capitalize name and surname, and validate email
-function validateAndInsert($name, $surname, $email, $conn) {
+function validateAndInsert($name, $surname, $email, $conn, $dry_run) {
     $name = ucfirst(strtolower($name));
     $surname = ucfirst(strtolower($surname));
     $email = strtolower($email);
@@ -46,11 +59,15 @@ function validateAndInsert($name, $surname, $email, $conn) {
         echo "Invalid email format: $email\n";
         return;
     }
-    $sql = "INSERT INTO users (name, surname, email) VALUES ('$name', '$surname', '$email')";
-    if ($conn->query($sql) === TRUE) {
-        echo "Record inserted successfully: $name $surname $email\n";
+    if (!$dry_run) {
+        $sql = "INSERT INTO users (name, surname, email) VALUES ('$name', '$surname', '$email')";
+        if ($conn->query($sql) === TRUE) {
+            echo "Record inserted successfully: $name $surname $email\n";
+        } else {
+            echo "Error inserting record: " . $conn->error . "\n";
+        }
     } else {
-        echo "Error inserting record: " . $conn->error . "\n";
+        echo "Dry run: Record not inserted: $name $surname $email\n";
     }
 }
 
@@ -61,7 +78,7 @@ if (!empty($filename)) {
         while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
             $num = count($data);
             if ($num == 3) {
-                validateAndInsert($data[0], $data[1], $data[2], $conn);
+                validateAndInsert($data[0], $data[1], $data[2], $conn, isset($options['dry_run']));
             } else {
                 echo "Invalid CSV format: Each row must contain exactly 3 columns\n";
             }
@@ -71,7 +88,7 @@ if (!empty($filename)) {
         echo "Error opening file: $filename\n";
     }
 } else {
-    echo "Please provide a CSV file using --file or -f option\n";
+    echo "Please provide a CSV file using --file option\n";
 }
 
 // Close database connection
