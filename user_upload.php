@@ -40,7 +40,7 @@ if (isset($options['create_table'])) {
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(50) NOT NULL,
         surname VARCHAR(50) NOT NULL,
-        email VARCHAR(100) NOT NULL
+        email VARCHAR(100) NOT NULL UNIQUE
     )";
     if ($conn->query($sql) === TRUE) {
         echo "Table 'users' created successfully\n";
@@ -54,11 +54,13 @@ if (isset($options['create_table'])) {
 function validateAndInsert($name, $surname, $email, $conn, $dry_run) {
     $name = ucfirst(strtolower($name));
     $surname = ucfirst(strtolower($surname));
-    $email = strtolower($email);
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        echo "Invalid email format: $email\n";
+    $email = trim(strtolower($email));
+
+    if (!preg_match("/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/", $email)) {
+        echo "Invalid email address " . $email . ".\n";
         return;
     }
+
     if (!$dry_run) {
         $sql = "INSERT INTO users (name, surname, email) VALUES ('$name', '$surname', '$email')";
         if ($conn->query($sql) === TRUE) {
