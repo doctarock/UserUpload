@@ -25,7 +25,7 @@ The available options are:
 - '-h [MySQL host]': MySQL host (default: localhost).
 - '-d [MySQL db name]': MySQL db name (default: database_name).
 
-##How it Works
+## How it Works
 The script defines a user_upload class that handles the following tasks:
 
 1. Connects to the MySQL database using the provided credentials.
